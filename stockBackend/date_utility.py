@@ -1,37 +1,45 @@
-from datetime import datetime, time
-import calendar
+from datetime import datetime, time, timedelta
+from datetime import datetime, time, date
+from typing import List
 
 
-def is_public_holiday(date):
-    # Hardcoded list of public holidays (replace with an actual list or API call)
-    public_holidays = [
-        "2022-01-01",  # New Year's Day
-        "2022-07-04",  # Independence Day
-        # Add more holidays as needed
-    ]
+def is_public_holiday(value: date, public_holidays: List[date]):
 
-    # Convert date to datetime object if it's not already
-    if not isinstance(date, datetime):
-        date = datetime.strptime(date, '%Y-%m-%d')
-
-    # Check if the day is a public holiday
-    if date.strftime('%Y-%m-%d') in public_holidays:
-        return True
-    else:
-        return False
+    return value in public_holidays
 
 
-def is_workday(date):
+def is_workday(value: date, public_holidays: List[date]):
     # Check if the day is a Saturday or Sunday
-    if date.weekday() >= 5:
+    if value.weekday() >= 5:
         return False
 
     # Check if the day is a public holiday
-    if is_public_holiday(date):
-        return False
-
-    return True
+    return not is_public_holiday(value, public_holidays)
 
 
 def is_in_time_interval(check_datetime: time, start_datetime: time, end_datetime: time):
     return start_datetime <= check_datetime < end_datetime
+
+
+def time_until_next_workday_and_interval(current_datetime: datetime, public_holidays: List[date],
+                                         start_datetime: time, end_datetime: time) -> timedelta:
+    """
+    Calculate the duration until the next workday within the specified time interval.
+    """
+    one_day = timedelta(days=1)
+
+    if is_in_time_interval(current_datetime.time(), start_datetime, end_datetime):
+        current_date = current_datetime
+        while not is_workday(current_date, public_holidays):
+            current_date += one_day
+        return current_date - current_datetime
+    else:
+        next_workday_start = datetime.combine(current_datetime.date(), start_datetime)
+
+        # Check if the calculated timedelta is negative
+        while next_workday_start < current_datetime or not is_workday(next_workday_start.date(), public_holidays):
+            # If negative, calculate the timedelta until the start of the next workday
+            next_workday_start += timedelta(days=1)
+
+        return next_workday_start - current_datetime
+

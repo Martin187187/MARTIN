@@ -1,33 +1,18 @@
 import sys
 import threading
-from datetime import datetime, time
+from datetime import datetime, time, date, timedelta
 
 from fastapi import FastAPI
 from pymongo import MongoClient
 
+from date_utility import is_workday, is_in_time_interval, time_until_next_workday_and_interval
 from scraper import background_task
 
-tags_metadata = [
-    {
-        "name": "users",
-        "description": "Operations with users. The **login** logic is also here.",
-    },
-    {
-        "name": "items",
-        "description": "Manage items. So _fancy_ they have their own docs.",
-        "externalDocs": {
-            "description": "Items external docs",
-            "url": "https://fastapi.tiangolo.com/",
-        },
-    },
-]
-
-app = FastAPI(tags_metadata=tags_metadata)
+app = FastAPI()
 
 # Parse command-line argument for MongoDB host
 mongodb_host = sys.argv[1] if len(sys.argv) > 1 else "localhost"
 
-# MongoDB connection settings
 mongo_client = MongoClient(f"mongodb://{mongodb_host}:27017/")
 db = mongo_client["stock_database"]
 datetime_entries_collection = db["datetime_entries"]
@@ -42,15 +27,33 @@ background_thread = threading.Thread(target=background_task, daemon=True)
 def read_root():
     return {"message": "Hello, World!"}
 
-@app.get("/users/", tags=["users"])
-async def get_users():
-    return [{"name": "Harry"}, {"name": "Ron"}]
-# POST endpoint to add datetime entries
+
 @app.post("/add_datetime")
-async def add_datetime_entry(entry: datetime):
+async def add_datetime_entry(value: date = datetime.now().date()):
     # Insert the datetime entry into the MongoDB collection
-    datetime_entries_collection.insert_one({"entry": entry})
+
+    start_datetime = datetime.combine(value, datetime.now().time())
+    datetime_entries_collection.insert_one({"entry": start_datetime})
     return {"message": "Datetime entry added successfully"}
+
+
+@app.get("/check_valid_date/{date_string}")
+async def check_valid_date(value: datetime = datetime.now()) -> bool:
+    entries = list(datetime_entries_collection.find({}, {"_id": 0, "entry": 1}))
+    entries = [elm['entry'].date() for elm in entries]
+    time_interval = time_interval_collection.find_one({}, {"_id": 0})
+    return is_workday(value.date(), entries) and is_in_time_interval(value.time(),
+                                                                     time_interval['start_datetime'].time(),
+                                                                     time_interval['end_datetime'].time())
+
+
+@app.get("/countdown/{date_string}")
+async def check_valid_date(value: datetime = datetime.now()) -> timedelta:
+    entries = list(datetime_entries_collection.find({}, {"_id": 0, "entry": 1}))
+    entries = [elm['entry'].date() for elm in entries]
+    time_interval = time_interval_collection.find_one({}, {"_id": 0})
+    return time_until_next_workday_and_interval(value, entries, time_interval['start_datetime'].time(),
+                                                time_interval['end_datetime'].time())
 
 
 # POST endpoint to add a time interval
