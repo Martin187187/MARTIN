@@ -1,0 +1,18 @@
+version: '3'
+services:
+  backend:
+    container_name: backend
+    build:
+      context: ./stockBackend  
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+    environment:
+      - MONGODB_URL=mongodb://mongo:27017/
+
+  mongo:
+    container_name: mongo-db
+    image: mongo:latest
+    ports:
+      - "27017:27017"
