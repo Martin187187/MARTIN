@@ -1,15 +1,43 @@
 version: '3'
 services:
   backend:
-    container_name: backend
     build:
       context: ./stockBackend  
     ports:
-      - "8000:8000"
+      - "8001:8001"
     depends_on:
       - mongo
     environment:
       - MONGODB_URL=mongodb://mongo:27017/
+  scraper:
+    build:
+      context: ./stockBackend  
+      dockerfile: Dockerfile2
+    ports:
+      - "8002:8002"
+    depends_on:
+      - mongo
+      - chromium
+    environment:
+      - MONGODB_URL=mongodb://mongo:27017/
+  chromium:
+    image: lscr.io/linuxserver/chromium:latest
+    container_name: chromium
+    security_opt:
+      - seccomp:unconfined #optional
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - CHROME_CLI=https://www.linuxserver.io/ #optional
+    volumes:
+      - /path/to/config:/config
+    ports:
+      - 3000:3000
+      - 3001:3001
+    shm_size: "1gb"
+    restart: unless-stopped
+  
 
   mongo:
     container_name: mongo-db
