@@ -9,7 +9,6 @@ from selenium.common import NoSuchElementException, ElementNotInteractableExcept
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 
-
 def get_stock_data(symbol):
     start_time = time.time()  # Record the start time
     url = f'https://finance.yahoo.com/quote/{symbol}'
@@ -61,14 +60,16 @@ def get_news_text_from_url(url, driver: WebDriver):
     return data, python_datetime
 
 
-def scrape_stock_news(symbol):
+def scrape_stock_news(symbol, url):
     options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-#    options.add_argument('--remote-debugging-address=chromium')  # Use the container name as the address
-#    options.add_argument('--remote-debugging-port=3000')  # Use the exposed port
+    #options.add_argument('--headless')
+    options.add_argument('--ignore-ssl-errors=yes')
+    options.add_argument('--ignore-certificate-errors')
 
-
-    driver = webdriver.Chrome(options=options)
+    driver = webdriver.Remote(
+        command_executor=f'http://{url}:4444/wd/hub',
+        options=options
+    )
     # Replace 'AAPL' with the desired stock symbol
     url = f'https://finance.yahoo.com/quote/{symbol}'
 

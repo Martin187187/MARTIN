@@ -14,6 +14,7 @@ from test import get_stock_data, scrape_stock_news
 import concurrent.futures
 app = FastAPI()
 mongo_manager = MongoDBManager(sys.argv[1] if len(sys.argv) > 1 else "localhost")
+url = 'selenium' if len(sys.argv) > 1 else "localhost"
 
 background_task_running = False
 background_task_progress = 0
@@ -28,7 +29,7 @@ def process_symbol(symbol):
     global new_news
     stock_data = get_stock_data(symbol)
     mongo_manager.add_nested_stock_data(symbol, datetime.now(), stock_data)
-    stock_news = scrape_stock_news(symbol)
+    stock_news = scrape_stock_news(symbol, url)
     num = mongo_manager.add_stock_news(symbol, stock_news)
     new_news += num
     background_task_progress += 1

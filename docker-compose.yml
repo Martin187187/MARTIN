@@ -1,5 +1,6 @@
 version: '3'
 services:
+
   backend:
     build:
       context: ./stockBackend  
@@ -9,6 +10,7 @@ services:
       - mongo
     environment:
       - MONGODB_URL=mongodb://mongo:27017/
+
   scraper:
     build:
       context: ./stockBackend  
@@ -17,30 +19,22 @@ services:
       - "8002:8002"
     depends_on:
       - mongo
-      - chromium
+      - selenium
     environment:
       - MONGODB_URL=mongodb://mongo:27017/
-  chromium:
-    image: lscr.io/linuxserver/chromium:latest
-    container_name: chromium
-    security_opt:
-      - seccomp:unconfined #optional
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/UTC
-      - CHROME_CLI=https://www.linuxserver.io/ #optional
-    volumes:
-      - /path/to/config:/config
-    ports:
-      - 3000:3000
-      - 3001:3001
-    shm_size: "1gb"
-    restart: unless-stopped
-  
+
 
   mongo:
     container_name: mongo-db
     image: mongo:latest
     ports:
       - "27017:27017"
+
+  selenium:
+    image: selenium/standalone-chrome
+    ports:
+      - "4444:4444"
+    shm_size: "2g"
+    environment:
+      - SE_NODE_MAX_SESSIONS=5
+  
